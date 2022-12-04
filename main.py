@@ -45,11 +45,11 @@ def home():
     path="/upload-csv"
 )
 def upload_csv(
-    csv:UploadFile=File(...),
-    modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")
+    csv:UploadFile=File(...)
+    #,modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")
     
 ):
-    
+    modelo_a_ejecutar="nuevos clientes"
     modelo_a_ejecutar=modelo_a_ejecutar.lower()
     
     if modelo_a_ejecutar=="nuevos clientes":
