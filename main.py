@@ -14,6 +14,12 @@ from fastapi import FastAPI
 from fastapi import File,UploadFile
 from fastapi.responses import FileResponse 
 from fastapi import Form
+from fastapi.middleware.cors import CORSMiddleware
+
+#
+origins = [
+    "http://localhost:3000",
+]
 
 
 #Preprocces:
@@ -36,7 +42,13 @@ def full_money(pagos,moras,instancia,data):
 
 
 app=FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 def home():
     return {"BIOS":"GLOBAL"}
