@@ -194,7 +194,7 @@ def upload_csv(
         codigo_cate=data[["CODIGO","CATEGORIA"]]
         data=data.drop(["CODIGO","CATEGORIA"],axis=1)
         
-        """
+    
         model=joblib.load("model_new_users.pkl")
         y_pred=model.predict(data)
         for i in range(len(y_pred)):
@@ -206,7 +206,7 @@ def upload_csv(
             y_pred
         
         data=devolucion
-        data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=y_pred"""
+        data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=y_pred
 
        
     elif modelo_a_ejecutar=="antiguos clientes":
