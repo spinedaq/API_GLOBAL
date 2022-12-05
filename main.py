@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from fastapi import File,UploadFile
 from fastapi.responses import FileResponse 
 from fastapi import Form
+from fastapi.middleware.cors import CORSMiddleware
 
 
 #Preprocces:
