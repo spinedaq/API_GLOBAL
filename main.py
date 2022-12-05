@@ -21,7 +21,20 @@ moras=["MORA PERIODO 2009", "MORA PERIODO 2010","MORA PERIODO 2011","MORA PERIOD
 pagos=["PAGO 2009","PAGO 2010","PAGO 2011","PAGO 2012","PAGO 2013","PAGO 2014","PAGO 2015","PAGO 2016","PAGO 2017","PAGO 2018","PAGO 2019","PAGO 2020"]
 años=[2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020]
 actividades=["ALOJAMIENTO","CLUB","COMERCIO","CONSUMO DE LICOR","DISCOTECA","ENTRETENIMIENTO","RESTAURANTE","SALUD","SERVICIOS","TRANSPORTE","EDUCACION","RELIGIOSO","OTROS"]
-one_va=["LOCALIDAD","ACTIVIDAD","GESTION COBRO","ESTADO JURIDICO","CONVENIO","ACTA"]
+one_va={"LOCALIDAD":["antonio nari¤o","engativa","suba"],"ACTIVIDAD":['alojamiento',
+       'club', 'comercio', 'consumo de licor',
+       'discoteca', 'educacion',
+       'entretenimiento', 'otros', 'restaurante',
+       'salud', 'servicios'],"GESTION COBRO":['coordinacion zona norte bogota',
+       'coordinacion zona sur bogota',
+       'fihmer music',
+       'coordinacion central de llamadas',
+       'normal'],"ESTADO JURIDICO":['datacredito',
+       'demandado juridico sin bloqueo',
+       'normal', 'sin estado juridico'],"CONVENIO":['coordinacion sur', 'devolucia n de correo',
+       'establecimiento 1a', 'gestion liquidaciones',
+       'gestores individuales', 'nomenclatura no especifica',
+       'sin convenio'],"ACTA":["con acta","sin acta"]}
 ###
 
 def MinMaxScaler(variable,data):
@@ -42,14 +55,11 @@ def home():
     return {"BIOS":"GLOBAL"}
 
 @app.post(
-    path="/upload-csv/{modelo_a_ejecutar}"
+    path="/upload-csv"
 )
 def upload_csv(
-    #csv:UploadFile=File(...),
-    #modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")
-    modelo_a_ejecutar:str
-    
-    
+    csv:UploadFile=File(...),
+    modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")   
 ):
     
     modelo_a_ejecutar=modelo_a_ejecutar.lower()
@@ -164,15 +174,27 @@ def upload_csv(
                 data["ACTIVIDAD"][i]="COMERCIO"
         
         MinMaxScaler(NV[0],data)
-            
+        
+        """"
         for i in one_va:
             variable=pd.get_dummies(data[i],prefix=i)
             data=data.drop([i],axis=1)
-            data=pd.concat([data,variable],axis=1)
+            data=pd.concat([data,variable],axis=1)"""
+            
+        for i in one_va.keys():
+            for j in one_va[i]:
+                data[i+"_"+j]=np.zeros((len(data)))
+                for k in data.index:
+                    if data[i][k].lower()==j:
+                        data[i+"_"+j][k]=1
+                data[i+"_"+j]=data[i+"_"+j].astype(int)
+            data=data.drop([i],axis=1)
+                    
             
         codigo_cate=data[["CODIGO","CATEGORIA"]]
         data=data.drop(["CODIGO","CATEGORIA"],axis=1)
         
+        """
         model=joblib.load("model_new_users.pkl")
         y_pred=model.predict(data)
         for i in range(len(y_pred)):
@@ -184,7 +206,7 @@ def upload_csv(
             y_pred
         
         data=devolucion
-        data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=y_pred
+        data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=y_pred"""
 
        
     elif modelo_a_ejecutar=="antiguos clientes":
@@ -323,6 +345,10 @@ def upload_csv(
         
         
         for i in data.index:
+            AD=data["ANO DESVINCULACION"][i]
+            for l in range(len(años)):
+                if AD==años[l]:
+                    ad=l
             if data["ANO VINCULACION"][i]<=2009:
                 count=0
             else:
@@ -330,7 +356,7 @@ def upload_csv(
                     if data["ANO VINCULACION"][i]==años[j]:
                         count=j
             if count==0:
-                for k in range(len(pagos)):
+                for k in range(ad+1):
                     if NaN[pagos[k]][i]==True:
                         data[pagos[k]][i]=data["TARIFA BASE"][i]-data[moras[k]][i]
                         if data[pagos[k]][i]<0:
@@ -339,7 +365,7 @@ def upload_csv(
                 for k in range(count):
                     if NaN[pagos[k]][i]==True:
                         data[pagos[k]][i]=0
-                for k in range(count,len(pagos)):
+                for k in range(count,ad+1):
                     if NaN[pagos[k]][i]==True:
                         data[pagos[k]][i]=data["TARIFA BASE"][i]-data[moras[k]][i]
                         if data[pagos[k]][i]<0:
