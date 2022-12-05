@@ -42,14 +42,16 @@ def home():
     return {"BIOS":"GLOBAL"}
 
 @app.post(
-    path="/upload-csv"
+    path="/upload-csv/{modelo_a_ejecutar}"
 )
 def upload_csv(
-    csv:UploadFile=File(...)
-    #,modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")
+    #csv:UploadFile=File(...),
+    #modelo_a_ejecutar:str=Form(...,title="Modelo a Ejecutar",description="Escriba el modelo que desea ejecutar: nuevos clientes o antiguos clientes ")
+    modelo_a_ejecutar:str
+    
     
 ):
-    modelo_a_ejecutar="nuevos clientes"
+    
     modelo_a_ejecutar=modelo_a_ejecutar.lower()
     
     if modelo_a_ejecutar=="nuevos clientes":
