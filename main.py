@@ -16,8 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi import Form
 from fastapi.middleware.cors import CORSMiddleware
 
-
-#Preprocces:
+#VARIABLES:
 moras=["MORA PERIODO 2009", "MORA PERIODO 2010","MORA PERIODO 2011","MORA PERIODO 2012","MORA PERIODO 2013","MORA PERIODO 2014","MORA PERIODO 2015","MORA PERIODO 2016","MORA PERIODO 2017","MORA PERIODO 2018","MORA PERIODO 2019","MORA PERIODO 2020"]
 pagos=["PAGO 2009","PAGO 2010","PAGO 2011","PAGO 2012","PAGO 2013","PAGO 2014","PAGO 2015","PAGO 2016","PAGO 2017","PAGO 2018","PAGO 2019","PAGO 2020"]
 años=[2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020]
@@ -36,20 +35,23 @@ one_va={"LOCALIDAD":["antonio nari¤o","engativa","suba"],"ACTIVIDAD":['alojamie
        'establecimiento 1a', 'gestion liquidaciones',
        'gestores individuales', 'nomenclatura no especifica',
        'sin convenio'],"ACTA":["con acta","sin acta"]}
-###
 
+#SATANDARD FUNCTION:
 def MinMaxScaler(variable,data):
   for i in data.index:
     data[variable][i]=(data[variable][i]-data[variable].min())/(data[variable].max()-data[variable].min())
     
+#DINERO TOTAL FUNCTION:
 def full_money(pagos,moras,instancia,data):
   dinero_total=0
   for i in range(len(pagos)):
     dinero_total=dinero_total+data[pagos[i]][instancia]+data[moras[i]][instancia]
   return dinero_total
 
-
+#API
 app=FastAPI()
+
+#CORDS:
 
 """
 CORDS
@@ -66,11 +68,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+#HOME ENDPOINT:
 @app.get("/")
 def home():
     return {"BIOS":"GLOBAL"}
 
+#UPLOAD CSV ENDPOINT:
 @app.post(
     path="/upload-csv"
 )
@@ -81,6 +84,7 @@ def upload_csv(
     
     modelo_a_ejecutar=modelo_a_ejecutar.lower()
     
+    #NUEVOS CLIENTES:
     if modelo_a_ejecutar=="nuevos clientes":
         try:
             data=pd.read_csv(StringIO(str(csv.file.read(), 'latin-1')), encoding='latin-1',sep=";")
@@ -88,12 +92,14 @@ def upload_csv(
             data=pd.read_csv(StringIO(str(csv.file.read(), 'latin-1')), encoding='latin-1')
             
         devolucion=data.copy()
+        
+        #PREPROCCES:
         NV=["TARIFA BASE"]    
         variables_en_cuenta=["ESTRATO","TARIFA BASE","CODIGO","CATEGORIA","LOCALIDAD","ACTIVIDAD","GESTION COBRO","ESTADO JURIDICO","CONVENIO","ACTA"]
         no_variables_en_cuenta=data.drop(variables_en_cuenta,axis=1)
         data=data[variables_en_cuenta]
         
-        
+        #AÑO DE VINCULACION:
         data["CODIGO"]=data["CODIGO"].astype(str)  
         A_vinculacion=[]
         for i in data.index:
@@ -112,6 +118,7 @@ def upload_csv(
             data["TARIFA BASE"][i]=string
         data["TARIFA BASE"] = data["TARIFA BASE"].astype(int, errors = 'raise') 
         
+        #TIPIFICACIÓN VARIABLE ACTIVIDAD:
         for i in data.index:
             actividad=data["ACTIVIDAD"][i]
             if (actividad[:5]=="HOTEL" or actividad[:9]=="BALNEARIO" or actividad[:9]=="HOSPEDAJE" or actividad[:8]=="ESTADERO" or actividad[:5]=="MOTEL" or actividad[:11]=="RESIDENCIAS" or actividad[:6]=="HOSTAL"):
@@ -190,14 +197,12 @@ def upload_csv(
             if Flag==False and data["CATEGORIA"][i]==4:
                 data["ACTIVIDAD"][i]="COMERCIO"
         
+        
+        #NORMALIZACIÓN TARIFA BASE:
         MinMaxScaler(NV[0],data)
         
-        """"
-        for i in one_va:
-            variable=pd.get_dummies(data[i],prefix=i)
-            data=data.drop([i],axis=1)
-            data=pd.concat([data,variable],axis=1)"""
-            
+        
+        #CODIFICACIÓN VARIABLES CATEGÓRICAS:
         for i in one_va.keys():
             for j in one_va[i]:
                 data[i+"_"+j]=np.zeros((len(data)))
@@ -211,7 +216,7 @@ def upload_csv(
         codigo_cate=data[["CODIGO","CATEGORIA"]]
         data=data.drop(["CODIGO","CATEGORIA"],axis=1)
         
-    
+        #PREDICCIÓN:
         model=joblib.load("model_new_users.pkl")
         y_pred=model.predict(data)
         for i in range(len(y_pred)):
@@ -226,6 +231,7 @@ def upload_csv(
         data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=y_pred
 
        
+    #ANTIGUOS CLIENTES:
     elif modelo_a_ejecutar=="antiguos clientes":
         try:
             data=pd.read_csv(StringIO(str(csv.file.read(), 'latin-1')), encoding='latin-1',sep=";")
@@ -234,7 +240,9 @@ def upload_csv(
             
         devolucion=data.copy()
         
+        #VARIABLES NUMERICAS:
         NV=["TARIFA BASE","TOTAL MORA PERIODO DE VINCULACION", "TOTAL DINERO PAGADO EN PERIODO DE VINCULACION", "MORA PERIODO 2009", "MORA PERIODO 2010","MORA PERIODO 2011","MORA PERIODO 2012","MORA PERIODO 2013","MORA PERIODO 2014","MORA PERIODO 2015","MORA PERIODO 2016","MORA PERIODO 2017","MORA PERIODO 2018","MORA PERIODO 2019","MORA PERIODO 2020","PAGO 2009","PAGO 2010","PAGO 2011","PAGO 2012","PAGO 2013","PAGO 2014","PAGO 2015","PAGO 2016","PAGO 2017","PAGO 2018","PAGO 2019","PAGO 2020"]
+            
             
         variables_en_cuenta=['CODIGO','PERIODO LIQUIDADO','LOCALIDAD', 'ESTRATO', 'CATEGORIA', 'ACTIVIDAD', 'GESTION COBRO',
         'ESTADO JURIDICO', 'CONVENIO', 'TARIFA BASE', 'ACTA',
@@ -248,6 +256,10 @@ def upload_csv(
         
         data=data[variables_en_cuenta]
         
+        
+        #PREPROCCES:
+        
+        #IMPUTACIÓN VARIABLES MORA:
         for i in moras:
             data[i]=data[i].fillna(0)
             
@@ -291,6 +303,8 @@ def upload_csv(
             data["VALOR LIQUIDADO"][i]=string
         data["VALOR LIQUIDADO"] = data["VALOR LIQUIDADO"].astype(int, errors = 'raise') 
             
+            
+        #AÑO DE VINCULACIÓN:
         data["CODIGO"]=data["CODIGO"].astype(str)  
         A_vinculacion=[]
         for i in data.index:
@@ -303,6 +317,7 @@ def upload_csv(
         devolucion["ANO VINCULACION"]=data["ANO VINCULACION"]
         
         
+        #AÑO DE DESVINCULACIÓN:
         A_desvinculazion=[]
         for i in data.index:
             if len(data["PERIODO LIQUIDADO"][i])==14:
@@ -317,7 +332,8 @@ def upload_csv(
         
         devolucion["ANO DESVINCULACION"]=data["ANO DESVINCULACION"]
         
-        
+
+        #AÑO ÚLTIMO PAGO COMPLETO:
         FUPC=[]
         for i in data.index:
             if data["ANO VINCULACION"][i]<=2009:
@@ -339,6 +355,8 @@ def upload_csv(
         
         devolucion["ANO ULTIMO PAGO COMPLETO"]=data["ANO ULTIMO PAGO COMPLETO"]
         
+        
+        #TOTAL MORA PERIODO DE VINCULACIÓN:
         TMPV=[]
         for j in data.index:
             sum=0
@@ -349,6 +367,8 @@ def upload_csv(
         
         devolucion["TOTAL MORA PERIODO DE VINCULACION"]=data["TOTAL MORA PERIODO DE VINCULACION"]
         
+        
+        #NUMERO DE AÑOS VINCULADO:
         NAV=[]
         for i in data.index:
             if data["ANO DESVINCULACION"][i]==data["ANO VINCULACION"][i]:
@@ -360,7 +380,7 @@ def upload_csv(
         
         devolucion["NUMERO DE ANOS VINCULADO"]=data["NUMERO DE ANOS VINCULADO"]
         
-        
+        #IMPUTACIÓN VARIABLES PAGO:
         for i in data.index:
             AD=data["ANO DESVINCULACION"][i]
             for l in range(len(años)):
@@ -392,6 +412,7 @@ def upload_csv(
             devolucion[i]=data[i]
                             
         
+        #TOTAL DINERO PAGADO EN PERIODO DE VINCULACIÓN:
         TP=[]
         for i in data.index:
             tp=0
@@ -407,6 +428,8 @@ def upload_csv(
         data=data.drop(["PERIODO LIQUIDADO"],axis=1)
         data=data.drop(["CODIGO"],axis=1)
         
+        
+        #TIPIFICACIÓN VARIABLE ACTIVIDAD:
         for i in data.index:
             actividad=data["ACTIVIDAD"][i]
             if (actividad[:5]=="HOTEL" or actividad[:9]=="BALNEARIO" or actividad[:9]=="HOSPEDAJE" or actividad[:8]=="ESTADERO" or actividad[:5]=="MOTEL" or actividad[:11]=="RESIDENCIAS" or actividad[:6]=="HOSTAL"):
@@ -491,6 +514,7 @@ def upload_csv(
         data=data.drop(["CATEGORIA"],axis=1)
         
         
+        #PORCENTAJE DINERO PAGADO EN PERIODO DE VINCULACIÓN (SALIDA):
         PDP=[]
         for i in data.index:
             dinero_total=full_money(pagos,moras,i,data)
@@ -508,30 +532,9 @@ def upload_csv(
         devolucion["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]=data["PORCENTAJE DINERO PAGADO PERIODO DE VINCULACION"]
         
         data=devolucion
-        """"
-        data_model=data.copy()
+
         
-        for i in NV:
-            MinMaxScaler(i,data_model)
-            
-        for i in one_va:
-            variable=pd.get_dummies(data_model[i],prefix=i)
-            data_model=data_model.drop([i],axis=1)
-            data_model=pd.concat([data_model,variable],axis=1)
-            
-        model=joblib.load("modelo_old_users.pkl")
-        y_pred=model.predict(data_model)
-        for i in range(len(y_pred)):
-            if y_pred[i]>100:
-                y_pred[i]=100
-            elif y_pred[i]<0:
-                y_pred[i]=0
-                
-        df=pd.DataFrame()
-        df["PORCENTAJE DINERO PAGADO"]=y_pred
-        df["PORCENTAJE DINERO PAGADO"]=df["PORCENTAJE DINERO PAGADO"].astype(int)"""
-        
-        
+    #RETURN:
     if modelo_a_ejecutar=="antiguos clientes" or modelo_a_ejecutar=="nuevos clientes":
         data.to_csv("csv_procesado.csv",index=False,sep=";")
         return FileResponse("csv_procesado.csv") 
